@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Feed.css";
 import CreateIcon from "@mui/icons-material/Create";
 import ImageIcon from "@mui/icons-material/Image";
@@ -7,12 +7,39 @@ import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import CalendarViewDayIcon from "@mui/icons-material/CalendarViewDay";
 import Post from "./Post";
+import { db } from "./firebase";
+import firebase from "firebase/compat/app";
 
 function Feed() {
+  const [input, setInput] = useState("");
   const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    db.collection("posts")
+      .orderBy("timestamp", "desc")
+      // ovo je da se redjaju postovi po redosledu po vremenu
+      .onSnapshot((snapshot) =>
+        setPosts(
+          snapshot.docs.map((doc) => ({
+            id: doc.id,
+            data: doc.data(),
+          }))
+        )
+      );
+  }, []);
 
   const sendPost = (e) => {
     e.preventDefault();
+
+    db.collection("posts").add({
+      name: "Nikola Petrovic",
+      description: "This is a test",
+      message: input,
+      photoUrl: "",
+      // vremenska zona
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    setInput("");
   };
 
   return (
@@ -21,7 +48,11 @@ function Feed() {
         <div className="feed__input">
           <CreateIcon />
           <form>
-            <input type="text" />
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              type="text"
+            />
             <button onClick={sendPost} type="submit">
               Send
             </button>
@@ -41,14 +72,15 @@ function Feed() {
         </div>
       </div>
       {/* Post */}
-      {posts.map((post) => (
-        <Post />
+      {posts.map(({ id, data: { name, description, message, photoUrl } }) => (
+        <Post
+          key={id}
+          name={name}
+          description={description}
+          message={message}
+          photoUrl={photoUrl}
+        />
       ))}
-      <Post
-        name="Nikola Petrovic"
-        description="This is a text"
-        message="WOW this worked"
-      />
     </div>
   );
 }
